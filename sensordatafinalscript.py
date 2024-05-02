@@ -170,11 +170,13 @@ def update_sensor_data(floor_id, zone_id, sensor_id, status):
         print(f"Error: {err}")
 
 # Function to insert an entry into the activity_logs table
+
 def insert_activity_log(floor_id, zone_id, sensor_id, issue):
     try:
         query_insert_activity_log = """
             INSERT INTO activity_logs (floor_id, zone_id, sensor_id, issue, created_at)
             VALUES (%s, %s, %s, %s, %s)
+            ON DUPLICATE KEY UPDATE issue = VALUES(issue), created_at = VALUES(created_at)
         """
         cursor.execute(query_insert_activity_log, (floor_id, zone_id, sensor_id, issue, datetime.now()))
         db_connection.commit()
@@ -283,7 +285,7 @@ while True:
 
                     previous_status[(floor_id, zone_id, sensor_id)] = status
 
-                if (status == 2):
+                if (status == 3):
                     insert_activity_log(floor_id, zone_id, sensor_id, "Faulty")
 
         zone_start_index = floor_data.find(b'\xAA', zone_start_index + 1)

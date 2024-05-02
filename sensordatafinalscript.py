@@ -144,7 +144,7 @@ cursor.close()
 db_connection.close()
 
 '''
-
+# ye humari wo file hai jo supremecourt me deploy hai live pure testing ke sath.. aur iska humne database me rakha hai pgs_sensor(4) wala. sensor me values update hogi, activity log file me issue update hoga, line chart me value insert hogi
 import mysql.connector
 from datetime import datetime
 import serial

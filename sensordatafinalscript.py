@@ -154,18 +154,17 @@ db_connection = mysql.connector.connect(host="localhost", user="root", password=
 cursor = db_connection.cursor()
 
 # Open the serial port for RS485 communication
-ser = serial.Serial('COM3', baudrate=9600, timeout=1)  # Replace 'COM1' with your actual port
-
+#ser = serial.Serial('COM3', baudrate=9600, timeout=1)  # Replace 'COM1' with your actual port
+ser=1
 # Function to update sensor data in the sensor table
 def update_sensor_data(floor_id, zone_id, sensor_id, status):
     try:
-        query_update_sensor = """
-            INSERT INTO sensor (floor_id, zone_id, sensor_id, status, count)
-            VALUES (%s, %s, %s, %s, 0)
-            ON DUPLICATE KEY UPDATE status = %s, last_updated = %s, count = count + 1;
+        query_upsert_sensor = """
+            INSERT INTO sensor (floor_id, zone_id, sensor_id, status, count, last_updated)
+            VALUES (%s, %s, %s, %s, 1, %s)
+            ON DUPLICATE KEY UPDATE status = %s, count = count + 1, last_updated = %s
         """
-
-        cursor.execute(query_update_sensor, (floor_id, zone_id, sensor_id, status, status, datetime.now()))
+        cursor.execute(query_upsert_sensor, (floor_id, zone_id, sensor_id, status, datetime.now(), status, datetime.now()))
         db_connection.commit()
     except mysql.connector.Error as err:
         print(f"Error: {err}")
@@ -185,22 +184,21 @@ def insert_activity_log(floor_id, zone_id, sensor_id, issue):
 # Function to insert data into the line_chart table
 def insert_line_chart_data(floor_id, zone_id, total_available, total_vacant, total_faulty):
     try:
-        
         query_insert_line_chart = """
             INSERT INTO line_chart (floor_id, zone_id, total_available, total_vacant, total_faulty)
-            VALUES (%s, %s, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s)
         """
         cursor.execute(query_insert_line_chart, (floor_id, zone_id, total_available, total_vacant, total_faulty))
         db_connection.commit()
     except mysql.connector.Error as err:
         print(f"Error: {err}")
 
+
 # Function to extract sensor data for a given zone
 def extract_sensor_data(zone_start_index, floor_id, zone_id):
     end_index = byte_data.find(b'\x55', zone_start_index)
-    print(end_index)
-    print(zone_start_index)
-    if end_index == -1 or end_index - zone_start_index < 8:
+    
+    if end_index - zone_start_index < 8:
         return None
         
     zone_address = byte_data[zone_start_index + 1]
@@ -210,11 +208,14 @@ def extract_sensor_data(zone_start_index, floor_id, zone_id):
         return None
         
     total_sensors = byte_data[zone_start_index + 3]
-    
-    if end_index - zone_start_index > total_sensors:
+
+    expected_length = 4 + total_sensors  # 4 bytes for zone address, zone status, total sensors, and 1 byte per sensor status
+    actual_length = end_index - zone_start_index
+
+    if actual_length <= expected_length:
         return None
-        
     sensor_data = []
+  
     for i in range(total_sensors):
         sensor_status = byte_data[zone_start_index + 4 + i]
         sensor_data.append(sensor_status)
@@ -243,10 +244,10 @@ def extract_sensor_data(zone_start_index, floor_id, zone_id):
 all_sensor_data = []
 previous_status = {}
 
-#static_data = b"\xf4\x00\x01\xde\x00\x01\x05\xaa\x00\x03U\xaa\x01\x03U\xaa\x02\x01\x1b\x00\x00\x00\x00\x00\x03\x03\x03\x03\x03\x03\x03\x03\x03\x03\x03\x03\x03\x03\x03\x03\x03\x03\x03\x03\x03\x03\x03\x05\x00\x00\x16U\xaa\x03\x03U\xaa\x04\x01'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00&\x01&\x00U\x00B\x00\x1a\x00\x01\x00\x16\x03U\x00\x05\x00\x01\x00\x00\x00\x03\x00\xd1"
+static_data = b'\xf4\x01\x01\x01\x05\xaa\x00\x01\x1b\x01\x01\x00\x00\x00\x00\x01\x00\x01\x01\x00\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x01\x00\x01\x03\x03\x03\x0f\t\x12\x03U\xaa\x01\x01\x17\x01\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x03\x00\x00\x00\x00\x00\x00\x01\x13\x03\x15\x01U\xaa\x02\x01\x1b\x01\x01\x01\x01\x00\x01\x00\x03\x00\x00\x01\x01\x01\x01\x01\x00\x01\x01\x03\x03\x01\x01\x01\x00\x00\x00\x00\t\x0f\x0c\x03U\xaa\x03\x01(\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00(\x00\x00\x00U\xaa\x04\x01\x16\x00\x00\x00\x00\x00\x00\x00\x03\x00\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00\x00\x00\x14\x01\x15\x01U\x00\x8b\x00h\x00\x1b\x00\x08\x00\xe9\xe9\x00\x8b\x00h\x00\x1b\x00\x08\x00\xd1'
 while True:
-    floor_data = ser.readline()
-    #floor_data = static_data
+    #floor_data = ser.readline()
+    floor_data = static_data
     print("data read")
     print(floor_data)
     byte_data = floor_data
@@ -290,6 +291,6 @@ while True:
 
 
 # Close the serial port, cursor, and the database connection when needed
-ser.close()
+#ser.close()
 cursor.close()
 db_connection.close()

@@ -257,7 +257,7 @@ while True:
     if not (floor_data.startswith(b'\xF4') and floor_data.endswith(b'\xD1')):
         continue
 
-    floor_id = floor_data[4] + 1
+    floor_id = floor_data[3]
     print(floor_id)
 
     zone_start_index = floor_data.find(b'\xAA')

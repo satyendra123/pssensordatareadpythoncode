@@ -153,7 +153,8 @@ while True:
 cursor.close()
 db_connection.close()
 '''
-#EXAMPLE-2 in this we have made it work for floor1 and floor2 both. F4 to D1 F4 to D1 like this i am getting the data
+#EXAMPLE-2 in this we have made it work for floor1 and floor2 both. F4 to D1 F4 to D1 like this i am getting the data. isme hume ye pta nahi chal rha tha ki kaon sa floor1 ka data hai aur kaon sa floor2 ka data hai aur koi sa bhi data pahle ya bad me aa sakta hai to
+# humne iske liye check lgaya hai ki agar zone1 me total sensor agar 27 hai to is pure data ko floor1 ka samjhe aur agar aisa nahi hai to ise floor_2 ka samjhe
 import mysql.connector
 from datetime import datetime
 import serial

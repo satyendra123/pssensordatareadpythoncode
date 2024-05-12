@@ -267,16 +267,20 @@ while True:
     if not (floor_data.startswith(b'\xF4') and floor_data.endswith(b'\xD1')):
         continue
 
-    floor_id = 1
     #floor_id = floor_data[3]
     matches = re.findall(b'\xF4.*?\xD1', floor_data, re.DOTALL)
     for match in matches:
         byte_data = match
 
         zone_start_index = byte_data.find(b'\xAA')
-
+        total_sensors = byte_data[zone_start_index + 3]
+        
+        if zone_start_index != -1 and total_sensors == 27:
+            floor_id = 1
+        else:
+            floor_id = 2
         while zone_start_index != -1:
-            zone_id = byte_data[zone_start_index + 1]
+            zone_id = byte_data[zone_start_index + 1]+1
             zone_data = extract_sensor_data(zone_start_index, floor_id, zone_id)
             if zone_data is not None:
                 print(f"Floor {floor_id}, Zone {zone_id} Data:", zone_data)
@@ -302,7 +306,7 @@ while True:
                         insert_activity_log(floor_id, zone_id, sensor_id, "Faulty")
 
             zone_start_index = byte_data.find(b'\xAA', zone_start_index + 1)
-        floor_id += 1
+        #floor_id += 1
 #ser.close()
 cursor.close()
 db_connection.close()
@@ -320,3 +324,4 @@ matches = re.findall(b'\xF4.*?\xD1', byte_data, re.DOTALL)
 for match in matches:
     print(match)
 '''
+

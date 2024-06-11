@@ -1,3 +1,5 @@
+#EXAMPLE-1 this is the latest python file which is deployed in the supremecourt. in the previous code i had has some issue regarding. if any zone has 23 sensors but it sends the 25 sensor data so i have resolved this issue by making a dictionary and add the zones data into it and resolve the issue
+
 import mysql.connector
 from datetime import datetime
 import serial
